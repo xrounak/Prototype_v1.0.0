@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #07090e;
+  --bg-secondary: #0d121d;
+  --bg-card: rgba(15, 23, 42, 0.75);
+  --bg-card-hover: rgba(22, 34, 61, 0.85);
+  --border-subtle: rgba(56, 189, 248, 0.12);
+  --border-active: rgba(56, 189, 248, 0.35);
+  --border-highlight: #38bdf8;
+  
+  --accent-cyan: #00f0ff;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-purple: #a855f7;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glass Card */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-panel:hover {
+  border-color: var(--border-active);
+}
+
+/* Button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  outline: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(2, 132, 199, 0.9));
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 16px rgba(14, 165, 233, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  box-shadow: 0 0 24px rgba(14, 165, 233, 0.5);
+}
+
+.btn-emerald {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+  color: #ffffff;
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-emerald:hover {
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.5);
+}
+
+.btn-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.btn-secondary:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Status indicator pulse */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.pulse-connected {
+  background-color: var(--accent-emerald);
+  box-shadow: 0 0 10px var(--accent-emerald);
+  animation: pulse-glow 2s infinite;
+}
+
+.pulse-connecting {
+  background-color: var(--accent-amber);
+  box-shadow: 0 0 10px var(--accent-amber);
+  animation: pulse-glow 1s infinite;
+}
+
+.pulse-disconnected {
+  background-color: var(--accent-rose);
+  box-shadow: 0 0 10px var(--accent-rose);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.5);
+}

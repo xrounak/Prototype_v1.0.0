@@ -1,0 +1,46 @@
+{
+  "scenario_name": "Baseline S-Band & Intercept Radar Environment",
+  "description": "Standard scenario featuring an acquisition radar, an intercept radar, and a continuous illuminator.",
+  "receiver_default": {
+    "instantaneous_bandwidth_hz": 500000000.0,
+    "default_dwell_time_ms": 25.0,
+    "min_frequency_hz": 500000000.0,
+    "max_frequency_hz": 3000000000.0
+  },
+  "emitters": [
+    {
+      "emitter_id": "E001",
+      "name": "S-Band Acquisition Radar",
+      "frequency_hz": 930000000.0,
+      "bandwidth_hz": 10000000.0,
+      "power_dbm": 30.0,
+      "pulse_duration_us": 250.0,
+      "repetition_interval_ms": 50.0,
+      "burst_count": 3,
+      "behavior_type": "BURST",
+      "active": true
+    },
+    {
+      "emitter_id": "E002",
+      "name": "Airborne Intercept Radar",
+      "frequency_hz": 1150000000.0,
+      "bandwidth_hz": 20000000.0,
+      "power_dbm": 42.0,
+      "pulse_duration_us": 120.0,
+      "repetition_interval_ms": 25.0,
+      "behavior_type": "PERIODIC",
+      "active": true
+    },
+    {
+      "emitter_id": "E003",
+      "name": "Continuous Wave Illuminator",
+      "frequency_hz": 850000000.0,
+      "bandwidth_hz": 5000000.0,
+      "power_dbm": 25.0,
+      "pulse_duration_us": 1000.0,
+      "repetition_interval_ms": 10.0,
+      "behavior_type": "CONTINUOUS",
+      "active": true
+    }
+  ]
+}
