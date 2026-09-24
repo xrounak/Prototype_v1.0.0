@@ -1,22 +1,25 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Pause, RotateCcw, FastForward, Scan, Radio } from 'lucide-react';
+import { Play, Pause, RotateCcw, FastForward, Scan, Radio, RefreshCw, Check } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface ControlPanelProps {
   simulationState: string;
   onRefreshStatus?: () => void;
+  onReset?: () => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   simulationState,
   onRefreshStatus,
+  onReset,
 }) => {
   const [customStartFreqMhz, setCustomStartFreqMhz] = useState<number>(700);
   const [dwellMs, setDwellMs] = useState<number>(25);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isStepping, setIsStepping] = useState<boolean>(false);
+  const [autoSweep, setAutoSweep] = useState<boolean>(true);
 
   const isRunning = simulationState === 'RUNNING';
 
@@ -30,6 +33,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       onRefreshStatus?.();
     } catch (err) {
       console.error('Failed to toggle play/pause:', err);
+    }
+  };
+
+  const handleToggleAutoSweep = async () => {
+    const nextVal = !autoSweep;
+    setAutoSweep(nextVal);
+    try {
+      await api.setReceiverAutoScan(nextVal);
+      onRefreshStatus?.();
+    } catch (err) {
+      console.error('Failed to toggle auto sweep:', err);
     }
   };
 
@@ -48,6 +62,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleReset = async () => {
     try {
       await api.resetSimulation();
+      onReset?.();
       onRefreshStatus?.();
     } catch (err) {
       console.error('Failed to reset simulation:', err);
@@ -76,11 +91,32 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <h2 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Radio size={16} color="#00f0ff" />
-          SIMULATION &amp; RECEIVER CONTROLS
+          SIMULATION &amp; RECEIVER SYNCHRONIZATION CONTROLS
         </h2>
-        <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-          Receiver BW: 500 MHz Instantaneous
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+          <button
+            onClick={handleToggleAutoSweep}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: autoSweep ? 'rgba(16, 185, 129, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+              border: `1px solid ${autoSweep ? 'rgba(16, 185, 129, 0.4)' : 'rgba(100, 116, 139, 0.4)'}`,
+              color: autoSweep ? '#34d399' : '#94a3b8',
+              borderRadius: '6px',
+              padding: '4px 10px',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+            title="Automatically sweep spectrum in sync with simulation clock"
+          >
+            <RefreshCw size={12} className={isRunning && autoSweep ? 'animate-spin' : ''} />
+            Auto Receiver Sweep: {autoSweep ? 'SYNCED' : 'PAUSED'}
+          </button>
+          <span style={{ color: 'var(--text-muted)' }}>
+            Receiver BW: 500 MHz Instantaneous
+          </span>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
@@ -93,7 +129,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <button
               onClick={handleTogglePlayPause}
               className={`btn ${isRunning ? 'btn-danger' : 'btn-emerald'}`}
-              style={{ minWidth: '110px' }}
+              style={{ minWidth: '115px' }}
             >
               {isRunning ? <Pause size={16} /> : <Play size={16} />}
               {isRunning ? 'Pause Sim' : 'Run Sim'}
@@ -104,7 +140,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               disabled={isStepping || isRunning}
               className="btn btn-primary"
               style={{ opacity: isRunning ? 0.5 : 1 }}
-              title="Advance discrete 25ms simulation step"
+              title="Advance discrete 25ms simulation step with synchronized receiver dwell"
             >
               <FastForward size={16} />
               Step +25ms
@@ -124,7 +160,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         {/* Quick Receiver Scan Triggers */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-            Quick Receiver Scans (500 MHz Window)
+            Instantaneous Dwell Presets (500 MHz)
           </span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             <button
@@ -134,7 +170,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               style={{ borderColor: 'rgba(56, 189, 248, 0.4)' }}
             >
               <Scan size={15} color="#38bdf8" />
-              700 &rarr; 1200 MHz (S-Band)
+              700 &rarr; 1200 MHz
             </button>
 
             <button
@@ -144,7 +180,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}
             >
               <Scan size={15} color="#f59e0b" />
-              1100 &rarr; 1600 MHz (L/S-Band)
+              1100 &rarr; 1600 MHz
+            </button>
+
+            <button
+              onClick={() => handleExecuteScan(2800, 25)}
+              disabled={isScanning}
+              className="btn btn-secondary"
+              style={{ borderColor: 'rgba(168, 85, 247, 0.4)' }}
+            >
+              <Scan size={15} color="#c084fc" />
+              2800 &rarr; 3300 MHz
             </button>
           </div>
         </div>
@@ -152,7 +198,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         {/* Custom Tune / Dwell Scan */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-            Custom Scan Tuning
+            Manual Frequency Tuning
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(30, 41, 59, 0.6)', borderRadius: '6px', padding: '4px 8px', border: '1px solid var(--border-subtle)' }}>

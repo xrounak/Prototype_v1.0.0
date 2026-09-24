@@ -166,16 +166,21 @@ export const SpectrumVisualizer: React.FC<SpectrumVisualizerProps> = ({
 
         {/* Emitters Placed on Spectrum */}
         {emitters.map((em) => {
-          const halfBw = em.bandwidth_hz / 2.0;
-          const leftPct = freqToPercent(em.frequency_hz - halfBw);
-          const rightPct = freqToPercent(em.frequency_hz + halfBw);
+          const bw = em.rf?.bandwidth_hz ?? em.bandwidth_hz ?? 20_000_000;
+          const freq = em.rf?.center_frequency_hz ?? em.frequency_hz ?? 1_000_000_000;
+          const pwr = em.rf?.power_dbm ?? em.power_dbm ?? 30;
+          const bType = em.behavior?.type ?? em.behavior_type ?? 'BURST';
+
+          const halfBw = bw / 2.0;
+          const leftPct = freqToPercent(freq - halfBw);
+          const rightPct = freqToPercent(freq + halfBw);
           const widthPct = Math.max(1.5, rightPct - leftPct);
           const isDetected = detectedEmitterIds.has(em.emitter_id);
 
           const color =
-            em.behavior_type === 'BURST'
+            bType === 'BURST'
               ? '#00f0ff'
-              : em.behavior_type === 'PERIODIC'
+              : bType === 'PERIODIC'
               ? '#f59e0b'
               : '#c084fc';
 
@@ -187,7 +192,7 @@ export const SpectrumVisualizer: React.FC<SpectrumVisualizerProps> = ({
                 left: `${leftPct}%`,
                 width: `${widthPct}%`,
                 bottom: '15px',
-                height: `${Math.min(95, Math.max(35, (em.power_dbm + 10) * 1.8))}px`,
+                height: `${Math.min(95, Math.max(35, (pwr + 10) * 1.8))}px`,
                 background: em.active
                   ? `linear-gradient(180deg, ${color} 0%, rgba(15, 23, 42, 0.4) 100%)`
                   : 'rgba(100, 116, 139, 0.3)',

@@ -9,8 +9,8 @@ class ReceiverConfig(BaseModel):
     receiver_id: str = "RX-01"
     instantaneous_bandwidth_hz: float = Field(default=500_000_000.0, description="Instantaneous bandwidth (500 MHz)")
     default_dwell_time_ms: float = Field(default=25.0, description="Dwell time in milliseconds")
-    min_frequency_hz: float = Field(default=500_000_000.0, description="Minimum tunable frequency (500 MHz)")
-    max_frequency_hz: float = Field(default=3_000_000_000.0, description="Maximum tunable frequency (3 GHz)")
+    min_frequency_hz: float = Field(default=300_000_000.0, description="Minimum tunable frequency (300 MHz)")
+    max_frequency_hz: float = Field(default=18_000_000_000.0, description="Maximum tunable frequency (18 GHz)")
     noise_floor_dbm: float = Field(default=-95.0, description="Internal noise floor in dBm")
 
 

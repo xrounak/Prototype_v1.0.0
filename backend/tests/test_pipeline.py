@@ -31,6 +31,18 @@ def test_simulation_clock():
 def test_emitter_continuous_generation():
     """Verify continuous emitter generation."""
     manager = EmitterManager()
+    em3 = EmitterConfig(
+        emitter_id="E003",
+        name="Continuous Wave Illuminator",
+        frequency_hz=850_000_000.0,
+        bandwidth_hz=5_000_000.0,
+        power_dbm=25.0,
+        pulse_duration_us=1000.0,
+        repetition_interval_ms=10.0,
+        behavior_type=BehaviorType.CONTINUOUS,
+        active=True,
+    )
+    manager.add_or_update_emitter(em3)
     service = EmitterService(manager=manager)
 
     # Query 840-860 MHz (E003 is at 850 MHz)
@@ -69,7 +81,20 @@ async def test_full_pipeline_scan_detection():
     """
     clock = SimulationClock(10.0)
     bus = EventBus()
-    emitter_service = EmitterService(event_bus=bus)
+    em1 = EmitterConfig(
+        emitter_id="E001",
+        name="S-Band Acquisition Radar",
+        frequency_hz=930_000_000.0,
+        bandwidth_hz=10_000_000.0,
+        power_dbm=30.0,
+        pulse_duration_us=250.0,
+        repetition_interval_ms=50.0,
+        burst_count=3,
+        behavior_type=BehaviorType.BURST,
+        active=True,
+    )
+    manager = EmitterManager([em1])
+    emitter_service = EmitterService(manager=manager, event_bus=bus)
     receiver_service = ReceiverService(
         clock=clock,
         emitter_service=emitter_service,

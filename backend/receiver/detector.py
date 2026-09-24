@@ -9,7 +9,7 @@ from backend.shared.models import Detection, EmissionEvent, ScanWindow
 
 
 class ReceiverDetector:
-    """Computes detections based on frequency and time overlap."""
+    """Computes detections based on frequency and time overlap, preserving emitter metadata."""
 
     @staticmethod
     def evaluate_emissions(
@@ -25,7 +25,7 @@ class ReceiverDetector:
             noise_floor_dbm: Detection sensitivity threshold.
 
         Returns:
-            List of detected signal observations.
+            List of detected signal observations preserving rich metadata.
         """
         detections: List[Detection] = []
 
@@ -56,12 +56,16 @@ class ReceiverDetector:
             detection = Detection(
                 detection_id=f"DET-{uuid.uuid4().hex[:8].upper()}",
                 emitter_id=em.emitter_id,
+                emitter_category=getattr(em, "emitter_category", "RADAR"),
+                emitter_subtype=getattr(em, "emitter_subtype", None),
                 frequency_start_hz=freq_overlap_start,
                 frequency_end_hz=freq_overlap_end,
                 detected_power_dbm=em.power_dbm,
                 timestamp=round(time_overlap_start, 6),
                 duration_us=round((time_overlap_end - time_overlap_start) * 1_000_000.0, 2),
                 overlap_ratio=round(overlap_ratio, 3),
+                behaviour=getattr(em, "behavior", "PERIODIC"),
+                modulation=getattr(em, "modulation", "UNMODULATED"),
             )
             detections.append(detection)
 

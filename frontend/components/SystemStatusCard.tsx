@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Server, Activity, Radio, Cpu, Power } from 'lucide-react';
+import { Server, Activity, Radio, Cpu, Power, Layers } from 'lucide-react';
 import { SystemStatus } from '../lib/types';
 import { api } from '../lib/api';
 
@@ -46,6 +46,13 @@ export const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ status, onRe
       sub: 'FastAPI / WebSocket Bus',
     },
     {
+      title: 'Active Environment',
+      state: status?.environment_name || 'Open Sparse',
+      isRunning: true,
+      icon: <Layers size={18} color="#00f0ff" />,
+      sub: `${status?.active_emitters ?? 0} of ${status?.total_emitters ?? 0} active`,
+    },
+    {
       title: 'Emitter Service',
       state: status?.emitter_service || 'STOPPED',
       isRunning: status?.emitter_service === 'RUNNING',
@@ -61,33 +68,30 @@ export const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ status, onRe
       sub: '500 MHz instantaneous BW',
       action: handleToggleReceiver,
     },
-    {
-      title: 'Simulation Engine',
-      state: status?.simulation_state || 'PAUSED',
-      isRunning: status?.simulation_state === 'RUNNING',
-      icon: <Activity size={18} color="#00f0ff" />,
-      sub: `T+ ${(status?.simulation_time ?? 0).toFixed(3)}s`,
-    },
   ];
 
   return (
     <div className="glass-panel" style={{ padding: '20px' }}>
-      <h3
-        style={{
-          fontSize: '0.85rem',
-          fontWeight: 600,
-          color: 'var(--text-secondary)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          marginBottom: '14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}
-      >
-        <Activity size={15} color="#38bdf8" />
-        SYSTEM STATUS
-      </h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <h3
+          style={{
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            color: 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <Activity size={15} color="#38bdf8" />
+          SYSTEM STATUS &amp; SERVICES
+        </h3>
+        <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+          Simulation State: <strong style={{ color: status?.simulation_state === 'RUNNING' ? '#34d399' : '#f59e0b' }}>{status?.simulation_state || 'PAUSED'}</strong>
+        </span>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         {items.map((item, idx) => (

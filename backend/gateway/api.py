@@ -1,6 +1,6 @@
-"""FastAPI API router defining system, emitter, receiver, and simulation endpoints."""
+"""FastAPI API router defining system, environment, emitter, receiver, and simulation endpoints."""
 import asyncio
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
@@ -14,18 +14,22 @@ from backend.shared.models import (
 from backend.shared.clock import SimulationClock
 from backend.shared.events import global_event_bus
 from backend.shared.config import settings
-from backend.emitter.service import EmitterService
+from backend.environments.manager import EnvironmentManager, global_environment_manager
+from backend.environments.models import EnvironmentConfig, EnvironmentSummary
+from backend.emitter.service import EmitterManager, EmitterService
 from backend.receiver.service import ReceiverService
 
 router = APIRouter()
 
 # Global state holders initialized by gateway main lifespan
 clock = SimulationClock()
-emitter_service = EmitterService(event_bus=global_event_bus)
+environment_manager = global_environment_manager
+emitter_manager = EmitterManager(environment_manager.get_current_environment().emitters)
+emitter_service = EmitterService(manager=emitter_manager, event_bus=global_event_bus)
 receiver_service = ReceiverService(
     clock=clock,
     emitter_service=emitter_service,
-    event_bus=global_event_bus
+    event_bus=global_event_bus,
 )
 
 simulation_state = {
@@ -43,6 +47,10 @@ class SimulationControlRequest(BaseModel):
     speed: float = 1.0
 
 
+class SelectEnvironmentRequest(BaseModel):
+    environment_id: str
+
+
 # -------------------------------------------------------------
 # System & Health
 # -------------------------------------------------------------
@@ -58,7 +66,11 @@ async def health_check() -> Dict[str, str]:
 @router.get("/api/system/status", response_model=SystemStatus)
 async def get_system_status() -> SystemStatus:
     """Get complete operational status across all services."""
-    active_emitters = sum(1 for em in emitter_service.manager.get_all_emitters() if em.active)
+    current_env = environment_manager.get_current_environment()
+    all_emitters = emitter_service.manager.get_all_emitters()
+    active_emitters = sum(1 for em in all_emitters if em.active)
+    total_emitters = len(all_emitters)
+
     last_obs_id = (
         receiver_service.state.last_observation.observation_id
         if receiver_service.state.last_observation
@@ -72,10 +84,85 @@ async def get_system_status() -> SystemStatus:
         simulation_time=clock.now(),
         simulation_state="RUNNING" if simulation_state["is_running"] else "PAUSED",
         simulation_speed=simulation_state["speed"],
+        environment_id=current_env.environment_id,
+        environment_name=current_env.name,
+        total_emitters=total_emitters,
         active_emitters=active_emitters,
         receiver_bandwidth_hz=receiver_service.config.instantaneous_bandwidth_hz,
         last_observation_id=last_obs_id,
     )
+
+
+# -------------------------------------------------------------
+# Environment Endpoints
+# -------------------------------------------------------------
+@router.get("/api/environments", response_model=List[EnvironmentSummary])
+async def list_environments() -> List[EnvironmentSummary]:
+    """List all available simulation environments."""
+    return environment_manager.list_environments()
+
+
+@router.get("/api/environment", response_model=EnvironmentConfig)
+async def get_current_environment() -> EnvironmentConfig:
+    """Get currently active simulation environment."""
+    return environment_manager.get_current_environment()
+
+
+@router.post("/api/environment/select")
+async def select_environment(req: SelectEnvironmentRequest):
+    """Switch active simulation scenario following the mandatory sequence:
+
+    1. pause simulation
+    2. load selected environment
+    3. replace emitter population
+    4. reset simulation time to 0
+    5. publish ENVIRONMENT_CHANGED
+    6. publish EMITTER_LIST
+    7. update SYSTEM_STATUS
+    """
+    try:
+        # 1. Pause simulation
+        simulation_state["is_running"] = False
+
+        # 2. Load selected environment
+        new_env = environment_manager.load_environment(req.environment_id)
+
+        # 3. Replace emitter population
+        emitter_service.manager.load_emitters(new_env.emitters)
+
+        # 4. Reset simulation time to 0
+        clock.reset(0.0)
+
+        # 5. Publish ENVIRONMENT_CHANGED
+        await global_event_bus.publish(
+            EventMessage(
+                type="ENVIRONMENT_CHANGED",
+                timestamp=clock.now(),
+                payload=new_env.model_dump(),
+            )
+        )
+
+        # 6. Publish EMITTER_LIST
+        emitters = emitter_service.manager.get_all_emitters()
+        await global_event_bus.publish(
+            EventMessage(
+                type="EMITTER_LIST",
+                timestamp=clock.now(),
+                payload={"emitters": [em.model_dump() for em in emitters]},
+            )
+        )
+
+        # 7. Update and publish SYSTEM_STATUS
+        await broadcast_system_status()
+
+        return {
+            "status": "ok",
+            "environment_id": new_env.environment_id,
+            "environment_name": new_env.name,
+            "emitter_count": len(new_env.emitters),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # -------------------------------------------------------------
@@ -99,7 +186,7 @@ async def stop_emitter():
 
 @router.get("/api/emitters", response_model=List[EmitterConfig])
 async def list_emitters():
-    """List all registered emitters in the environment."""
+    """List all registered emitters in the current environment."""
     return emitter_service.manager.get_all_emitters()
 
 
@@ -151,13 +238,28 @@ async def get_receiver_state():
     }
 
 
+class AutoScanRequest(BaseModel):
+    enabled: bool = True
+
+
+@router.post("/api/receiver/auto_scan")
+async def set_receiver_auto_scan(req: AutoScanRequest):
+    """Toggle receiver continuous automated spectrum sweep."""
+    receiver_service.auto_scan = req.enabled
+    await broadcast_system_status()
+    return {"status": "ok", "auto_scan": receiver_service.auto_scan}
+
+
 @router.post("/api/receiver/scan", response_model=Observation)
 async def execute_receiver_scan(request: ScanRequest):
     """Execute an instantaneous bandwidth scan dwell (e.g. 700 MHz -> 1200 MHz, 25ms dwell)."""
     try:
-        observation = await receiver_service.execute_scan(request)
+        advance_clock = not simulation_state["is_running"]
+        observation = await receiver_service.execute_scan(request, advance_clock_if_paused=advance_clock)
         await broadcast_system_status()
         return observation
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -185,9 +287,22 @@ async def pause_simulation():
 
 @router.post("/api/simulation/reset")
 async def reset_simulation():
-    """Reset the simulation clock to 0.0s."""
+    """Reset the simulation clock to 0.0s and clear active state."""
     clock.reset(0.0)
     simulation_state["is_running"] = False
+    receiver_service.current_sweep_idx = 0
+    receiver_service.current_scan_window = None
+    receiver_service.last_observation = None
+
+    # Broadcast reset so connected frontend clients clear event buffers
+    await global_event_bus.publish(
+        EventMessage(
+            type="SIMULATION_RESET",
+            timestamp=0.0,
+            payload={"simulation_time": 0.0, "status": "RESET"},
+        )
+    )
+
     await broadcast_system_status()
     return {"status": "ok", "simulation_time": 0.0, "simulation_state": "PAUSED"}
 
@@ -202,6 +317,9 @@ async def step_simulation(step_req: StepRequest = StepRequest()):
 
     # Generate emissions during this slice
     emissions = await emitter_service.step_and_publish(t_start, t_end)
+    if receiver_service.is_running and receiver_service.auto_scan:
+        await receiver_service.step_and_scan(t_start, t_end)
+
     await broadcast_system_status()
     return {
         "time_start": t_start,

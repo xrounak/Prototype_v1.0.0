@@ -4,10 +4,41 @@ from backend.receiver.models import ReceiverConfig
 
 
 class ReceiverScanner:
-    """Calculates scan frequency boundaries and timing windows."""
+    """Calculates scan frequency boundaries and timing windows with validation."""
 
     def __init__(self, config: ReceiverConfig):
         self.config = config
+
+    def validate_request(self, request: ScanRequest) -> float:
+        """Validate tuning parameters against receiver hardware limits.
+
+        Returns:
+            effective_bw: clamped instantaneous bandwidth in Hz.
+        """
+        if request.frequency_start_hz < self.config.min_frequency_hz:
+            raise ValueError(
+                f"Requested start frequency {request.frequency_start_hz / 1e6:.1f} MHz is below "
+                f"receiver minimum {self.config.min_frequency_hz / 1e6:.1f} MHz"
+            )
+
+        if request.frequency_start_hz >= self.config.max_frequency_hz:
+            raise ValueError(
+                f"Requested start frequency {request.frequency_start_hz / 1e6:.1f} MHz exceeds "
+                f"receiver maximum {self.config.max_frequency_hz / 1e6:.1f} MHz"
+            )
+
+        # Enforce receiver instantaneous bandwidth limit
+        requested_bw = request.bandwidth_hz if (request.bandwidth_hz and request.bandwidth_hz > 0) else self.config.instantaneous_bandwidth_hz
+        effective_bw = min(requested_bw, self.config.instantaneous_bandwidth_hz)
+
+        freq_end = request.frequency_start_hz + effective_bw
+        if freq_end > self.config.max_frequency_hz:
+            raise ValueError(
+                f"Scan window end frequency {freq_end / 1e6:.1f} MHz exceeds "
+                f"receiver maximum {self.config.max_frequency_hz / 1e6:.1f} MHz"
+            )
+
+        return effective_bw
 
     def build_scan_window(
         self,
@@ -16,15 +47,11 @@ class ReceiverScanner:
     ) -> ScanWindow:
         """Construct the concrete ScanWindow for a given ScanRequest.
 
-        Calculates frequency_end_hz = frequency_start_hz + bandwidth_hz.
-        Calculates time_end = time_start + dwell_time_sec.
+        Validates tuning parameters and calculates frequency_end_hz and time_end.
         """
-        # Ensure bandwidth adheres to receiver hardware limit if not specified
-        bw = request.bandwidth_hz or self.config.instantaneous_bandwidth_hz
-        # Instantaneous bandwidth constraint (e.g. 500 MHz maximum)
-        effective_bw = min(bw, self.config.instantaneous_bandwidth_hz)
+        effective_bw = self.validate_request(request)
 
-        dwell_ms = request.dwell_time_ms or self.config.default_dwell_time_ms
+        dwell_ms = request.dwell_time_ms if (request.dwell_time_ms and request.dwell_time_ms > 0) else self.config.default_dwell_time_ms
         dwell_sec = dwell_ms / 1000.0
 
         freq_start = request.frequency_start_hz
@@ -34,6 +61,7 @@ class ReceiverScanner:
         time_end = round(time_start + dwell_sec, 6)
 
         return ScanWindow(
+            action_id=request.action_id,
             frequency_start_hz=freq_start,
             frequency_end_hz=freq_end,
             dwell_time_ms=dwell_ms,

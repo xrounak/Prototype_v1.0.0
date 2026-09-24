@@ -1,0 +1,1164 @@
+{
+  "simulation": {
+    "frequency_range_hz": {
+      "min": 300000000,
+      "max": 18000000000
+    },
+    "duration_seconds": 60,
+    "time_resolution_us": 1
+  },
+
+  "behaviours": {
+    "CONTINUOUS": {},
+    "PERIODIC": {
+      "required_parameters": [
+        "pulse_width_us",
+        "repetition_interval_ms"
+      ]
+    },
+    "BURST": {
+      "required_parameters": [
+        "pulse_width_us",
+        "repetition_interval_ms",
+        "burst_count",
+        "burst_interval_ms"
+      ]
+    },
+    "JITTERED": {
+      "required_parameters": [
+        "pulse_width_us",
+        "base_pri_ms",
+        "jitter_percent"
+      ]
+    },
+    "STAGGERED": {
+      "required_parameters": [
+        "pulse_width_us",
+        "pri_sequence_ms"
+      ]
+    },
+    "FREQUENCY_HOPPING": {
+      "required_parameters": [
+        "hop_frequencies_hz",
+        "dwell_time_ms"
+      ]
+    },
+    "FREQUENCY_AGILE": {
+      "required_parameters": [
+        "min_frequency_hz",
+        "max_frequency_hz",
+        "change_interval_ms"
+      ]
+    }
+  },
+
+  "modulations": [
+    "UNMODULATED",
+    "LFM",
+    "PHASE_CODED",
+    "PHASE_SHIFT_KEYING",
+    "FREQUENCY_SHIFT_KEYING"
+  ],
+
+  "environments": [
+
+    {
+      "id": "OPEN_SPARSE",
+      "name": "Open Sparse",
+      "description": "Low-density electromagnetic environment with clearly separated synthetic emitters.",
+      "duration_seconds": 60,
+
+      "spectrum": {
+        "min_frequency_hz": 300000000,
+        "max_frequency_hz": 18000000000
+      },
+
+      "emitter_count": 8,
+
+      "emitters": [
+
+        {
+          "emitter_id": "E001",
+          "name": "Search Radar 01",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+
+          "rf": {
+            "center_frequency_hz": 1300000000,
+            "bandwidth_hz": 10000000,
+            "power_dbm": 30
+          },
+
+          "pulse": {
+            "width_us": 250,
+            "repetition_interval_ms": 50
+          },
+
+          "behavior": {
+            "type": "PERIODIC"
+          },
+
+          "modulation": {
+            "type": "UNMODULATED"
+          }
+        },
+
+        {
+          "emitter_id": "E002",
+          "name": "Tracking Radar 01",
+          "category": "RADAR",
+          "subtype": "TRACKING",
+
+          "rf": {
+            "center_frequency_hz": 3100000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 35
+          },
+
+          "pulse": {
+            "width_us": 100,
+            "repetition_interval_ms": 40
+          },
+
+          "behavior": {
+            "type": "PERIODIC"
+          },
+
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E003",
+          "name": "Airborne Radar 01",
+          "category": "RADAR",
+          "subtype": "AIRBORNE",
+
+          "rf": {
+            "center_frequency_hz": 9200000000,
+            "bandwidth_hz": 30000000,
+            "power_dbm": 38
+          },
+
+          "pulse": {
+            "width_us": 120,
+            "repetition_interval_ms": 25
+          },
+
+          "behavior": {
+            "type": "JITTERED",
+            "base_pri_ms": 25,
+            "jitter_percent": 5
+          },
+
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E004",
+          "name": "Communication Source 01",
+          "category": "COMMUNICATION",
+          "subtype": "FIXED",
+
+          "rf": {
+            "center_frequency_hz": 450000000,
+            "bandwidth_hz": 5000000,
+            "power_dbm": 20
+          },
+
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E005",
+          "name": "Communication Source 02",
+          "category": "COMMUNICATION",
+          "subtype": "MOBILE",
+
+          "rf": {
+            "center_frequency_hz": 1800000000,
+            "bandwidth_hz": 10000000,
+            "power_dbm": 22
+          },
+
+          "pulse": {
+            "width_us": 500,
+            "repetition_interval_ms": 20
+          },
+
+          "behavior": {
+            "type": "BURST",
+            "burst_count": 5,
+            "burst_interval_ms": 500
+          },
+
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E006",
+          "name": "Navigation Source 01",
+          "category": "NAVIGATION",
+          "subtype": "BEACON",
+
+          "rf": {
+            "center_frequency_hz": 1200000000,
+            "bandwidth_hz": 2000000,
+            "power_dbm": 18
+          },
+
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E007",
+          "name": "Search Radar 02",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+
+          "rf": {
+            "center_frequency_hz": 5600000000,
+            "bandwidth_hz": 15000000,
+            "power_dbm": 32
+          },
+
+          "pulse": {
+            "width_us": 150,
+            "repetition_interval_ms": 50
+          },
+
+          "behavior": {
+            "type": "STAGGERED",
+            "pri_sequence_ms": [
+              50,
+              70,
+              60
+            ]
+          },
+
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E008",
+          "name": "Generic RF Source 01",
+          "category": "GENERIC_RF",
+          "subtype": "UNKNOWN",
+
+          "rf": {
+            "center_frequency_hz": 2400000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 15
+          },
+
+          "pulse": {
+            "width_us": 500,
+            "repetition_interval_ms": 100
+          },
+
+          "behavior": {
+            "type": "PERIODIC"
+          },
+
+          "modulation": {
+            "type": "FREQUENCY_SHIFT_KEYING"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "DENSE_URBAN",
+      "name": "Dense Urban",
+      "description": "High-density synthetic electromagnetic environment containing overlapping radar, communication, navigation and interference sources.",
+      "duration_seconds": 60,
+
+      "spectrum": {
+        "min_frequency_hz": 300000000,
+        "max_frequency_hz": 18000000000
+      },
+
+      "emitter_count": 20,
+
+      "population": {
+        "RADAR": 7,
+        "COMMUNICATION": 7,
+        "NAVIGATION": 2,
+        "INTERFERENCE": 3,
+        "GENERIC_RF": 1
+      },
+
+      "emitters": [
+
+        {
+          "emitter_id": "E101",
+          "name": "Urban Search Radar 01",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+          "rf": {
+            "center_frequency_hz": 1300000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 30
+          },
+          "pulse": {
+            "width_us": 200,
+            "repetition_interval_ms": 50
+          },
+          "behavior": {
+            "type": "PERIODIC"
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E102",
+          "name": "Urban Search Radar 02",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+          "rf": {
+            "center_frequency_hz": 2900000000,
+            "bandwidth_hz": 25000000,
+            "power_dbm": 32
+          },
+          "pulse": {
+            "width_us": 180,
+            "repetition_interval_ms": 45
+          },
+          "behavior": {
+            "type": "JITTERED",
+            "base_pri_ms": 45,
+            "jitter_percent": 8
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E103",
+          "name": "Urban Tracking Radar 01",
+          "category": "RADAR",
+          "subtype": "TRACKING",
+          "rf": {
+            "center_frequency_hz": 3200000000,
+            "bandwidth_hz": 15000000,
+            "power_dbm": 35
+          },
+          "pulse": {
+            "width_us": 100,
+            "repetition_interval_ms": 40
+          },
+          "behavior": {
+            "type": "STAGGERED",
+            "pri_sequence_ms": [
+              40,
+              60,
+              50
+            ]
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E104",
+          "name": "Urban Tracking Radar 02",
+          "category": "RADAR",
+          "subtype": "TRACKING",
+          "rf": {
+            "center_frequency_hz": 8700000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 36
+          },
+          "pulse": {
+            "width_us": 80,
+            "repetition_interval_ms": 30
+          },
+          "behavior": {
+            "type": "FREQUENCY_AGILE",
+            "min_frequency_hz": 8500000000,
+            "max_frequency_hz": 9000000000,
+            "change_interval_ms": 25
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E105",
+          "name": "Airborne Radar 01",
+          "category": "RADAR",
+          "subtype": "AIRBORNE",
+          "rf": {
+            "center_frequency_hz": 9500000000,
+            "bandwidth_hz": 40000000,
+            "power_dbm": 38
+          },
+          "pulse": {
+            "width_us": 120,
+            "repetition_interval_ms": 25
+          },
+          "behavior": {
+            "type": "FREQUENCY_HOPPING",
+            "hop_frequencies_hz": [
+              9200000000,
+              9400000000,
+              9600000000,
+              9800000000
+            ],
+            "dwell_time_ms": 10
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E106",
+          "name": "Acquisition Radar 01",
+          "category": "RADAR",
+          "subtype": "ACQUISITION",
+          "rf": {
+            "center_frequency_hz": 5500000000,
+            "bandwidth_hz": 30000000,
+            "power_dbm": 34
+          },
+          "pulse": {
+            "width_us": 200,
+            "repetition_interval_ms": 20
+          },
+          "behavior": {
+            "type": "BURST",
+            "burst_count": 5,
+            "burst_interval_ms": 500
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E107",
+          "name": "Continuous Wave Radar 01",
+          "category": "RADAR",
+          "subtype": "CONTINUOUS_WAVE",
+          "rf": {
+            "center_frequency_hz": 10200000000,
+            "bandwidth_hz": 5000000,
+            "power_dbm": 25
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+          "modulation": {
+            "type": "UNMODULATED"
+          }
+        },
+
+        {
+          "emitter_id": "E108",
+          "name": "Urban Communication 01",
+          "category": "COMMUNICATION",
+          "subtype": "FIXED",
+          "rf": {
+            "center_frequency_hz": 450000000,
+            "bandwidth_hz": 5000000,
+            "power_dbm": 20
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E109",
+          "name": "Urban Communication 02",
+          "category": "COMMUNICATION",
+          "subtype": "MOBILE",
+          "rf": {
+            "center_frequency_hz": 900000000,
+            "bandwidth_hz": 10000000,
+            "power_dbm": 22
+          },
+          "pulse": {
+            "width_us": 500,
+            "repetition_interval_ms": 20
+          },
+          "behavior": {
+            "type": "BURST",
+            "burst_count": 4,
+            "burst_interval_ms": 250
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E110",
+          "name": "Urban Communication 03",
+          "category": "COMMUNICATION",
+          "subtype": "FIXED",
+          "rf": {
+            "center_frequency_hz": 1800000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 24
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E111",
+          "name": "Urban Communication 04",
+          "category": "COMMUNICATION",
+          "subtype": "MOBILE",
+          "rf": {
+            "center_frequency_hz": 2400000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 20
+          },
+          "pulse": {
+            "width_us": 500,
+            "repetition_interval_ms": 100
+          },
+          "behavior": {
+            "type": "PERIODIC"
+          },
+          "modulation": {
+            "type": "FREQUENCY_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E112",
+          "name": "Urban Communication 05",
+          "category": "COMMUNICATION",
+          "subtype": "HIGH_RATE",
+          "rf": {
+            "center_frequency_hz": 3500000000,
+            "bandwidth_hz": 40000000,
+            "power_dbm": 25
+          },
+          "pulse": {
+            "width_us": 100,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "FREQUENCY_AGILE",
+            "min_frequency_hz": 3400000000,
+            "max_frequency_hz": 3600000000,
+            "change_interval_ms": 15
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E113",
+          "name": "Urban Communication 06",
+          "category": "COMMUNICATION",
+          "subtype": "HIGH_RATE",
+          "rf": {
+            "center_frequency_hz": 5800000000,
+            "bandwidth_hz": 40000000,
+            "power_dbm": 23
+          },
+          "pulse": {
+            "width_us": 250,
+            "repetition_interval_ms": 50
+          },
+          "behavior": {
+            "type": "BURST",
+            "burst_count": 6,
+            "burst_interval_ms": 300
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E114",
+          "name": "Urban Communication 07",
+          "category": "COMMUNICATION",
+          "subtype": "FIXED",
+          "rf": {
+            "center_frequency_hz": 12000000000,
+            "bandwidth_hz": 50000000,
+            "power_dbm": 28
+          },
+          "pulse": {
+            "width_us": 200,
+            "repetition_interval_ms": 100
+          },
+          "behavior": {
+            "type": "PERIODIC"
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E115",
+          "name": "Navigation Source 01",
+          "category": "NAVIGATION",
+          "subtype": "BEACON",
+          "rf": {
+            "center_frequency_hz": 1200000000,
+            "bandwidth_hz": 5000000,
+            "power_dbm": 18
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E116",
+          "name": "Navigation Source 02",
+          "category": "NAVIGATION",
+          "subtype": "BEACON",
+          "rf": {
+            "center_frequency_hz": 1500000000,
+            "bandwidth_hz": 5000000,
+            "power_dbm": 18
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E117",
+          "name": "Spot Interference Source",
+          "category": "INTERFERENCE",
+          "subtype": "SPOT",
+          "rf": {
+            "center_frequency_hz": 2400000000,
+            "bandwidth_hz": 80000000,
+            "power_dbm": 40
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+          "modulation": {
+            "type": "UNMODULATED"
+          }
+        },
+
+        {
+          "emitter_id": "E118",
+          "name": "Sweep Interference Source",
+          "category": "INTERFERENCE",
+          "subtype": "SWEEP",
+          "rf": {
+            "center_frequency_hz": 5000000000,
+            "bandwidth_hz": 200000000,
+            "power_dbm": 42
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "FREQUENCY_AGILE",
+            "min_frequency_hz": 4900000000,
+            "max_frequency_hz": 5100000000,
+            "change_interval_ms": 5
+          },
+          "modulation": {
+            "type": "UNMODULATED"
+          }
+        },
+
+        {
+          "emitter_id": "E119",
+          "name": "Barrage Interference Source",
+          "category": "INTERFERENCE",
+          "subtype": "BARRAGE",
+          "rf": {
+            "center_frequency_hz": 8000000000,
+            "bandwidth_hz": 500000000,
+            "power_dbm": 45
+          },
+          "pulse": {
+            "width_us": 1000,
+            "repetition_interval_ms": 10
+          },
+          "behavior": {
+            "type": "CONTINUOUS"
+          },
+          "modulation": {
+            "type": "UNMODULATED"
+          }
+        },
+
+        {
+          "emitter_id": "E120",
+          "name": "Urban Generic RF",
+          "category": "GENERIC_RF",
+          "subtype": "UNKNOWN",
+          "rf": {
+            "center_frequency_hz": 3000000000,
+            "bandwidth_hz": 100000000,
+            "power_dbm": 18
+          },
+          "pulse": {
+            "width_us": 500,
+            "repetition_interval_ms": 100
+          },
+          "behavior": {
+            "type": "BURST",
+            "burst_count": 3,
+            "burst_interval_ms": 500
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "FREQUENCY_AGILE",
+      "name": "Frequency Agile",
+      "description": "Synthetic environment dominated by emitters whose frequency and timing characteristics change over time.",
+      "duration_seconds": 60,
+
+      "spectrum": {
+        "min_frequency_hz": 1000000000,
+        "max_frequency_hz": 12000000000
+      },
+
+      "emitter_count": 12,
+
+      "emitters": [
+
+        {
+          "emitter_id": "E201",
+          "name": "Hopping Radar 01",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+          "rf": {
+            "center_frequency_hz": 1500000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 34
+          },
+          "pulse": {
+            "width_us": 120,
+            "repetition_interval_ms": 30
+          },
+          "behavior": {
+            "type": "FREQUENCY_HOPPING",
+            "hop_frequencies_hz": [
+              1200000000,
+              1400000000,
+              1600000000,
+              1800000000
+            ],
+            "dwell_time_ms": 10
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E202",
+          "name": "Agile Radar 01",
+          "category": "RADAR",
+          "subtype": "TRACKING",
+          "rf": {
+            "center_frequency_hz": 3000000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 36
+          },
+          "pulse": {
+            "width_us": 100,
+            "repetition_interval_ms": 25
+          },
+          "behavior": {
+            "type": "FREQUENCY_AGILE",
+            "min_frequency_hz": 2500000000,
+            "max_frequency_hz": 3500000000,
+            "change_interval_ms": 20
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E203",
+          "name": "Hopping Radar 02",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+          "rf": {
+            "center_frequency_hz": 5000000000,
+            "bandwidth_hz": 25000000,
+            "power_dbm": 35
+          },
+          "pulse": {
+            "width_us": 150,
+            "repetition_interval_ms": 40
+          },
+          "behavior": {
+            "type": "FREQUENCY_HOPPING",
+            "hop_frequencies_hz": [
+              4000000000,
+              4500000000,
+              5000000000,
+              5500000000,
+              6000000000
+            ],
+            "dwell_time_ms": 15
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E204",
+          "name": "Agile Radar 02",
+          "category": "RADAR",
+          "subtype": "TRACKING",
+          "rf": {
+            "center_frequency_hz": 9000000000,
+            "bandwidth_hz": 30000000,
+            "power_dbm": 38
+          },
+          "pulse": {
+            "width_us": 100,
+            "repetition_interval_ms": 30
+          },
+          "behavior": {
+            "type": "FREQUENCY_AGILE",
+            "min_frequency_hz": 8000000000,
+            "max_frequency_hz": 10000000000,
+            "change_interval_ms": 25
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E205",
+          "name": "Hopping Radar 03",
+          "category": "RADAR",
+          "subtype": "AIRBORNE",
+          "rf": {
+            "center_frequency_hz": 10000000000,
+            "bandwidth_hz": 30000000,
+            "power_dbm": 40
+          },
+          "pulse": {
+            "width_us": 80,
+            "repetition_interval_ms": 20
+          },
+          "behavior": {
+            "type": "FREQUENCY_HOPPING",
+            "hop_frequencies_hz": [
+              8500000000,
+              9000000000,
+              9500000000,
+              10000000000,
+              10500000000
+            ],
+            "dwell_time_ms": 8
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E206",
+          "name": "Staggered Radar 01",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+          "rf": {
+            "center_frequency_hz": 3000000000,
+            "bandwidth_hz": 15000000,
+            "power_dbm": 32
+          },
+          "pulse": {
+            "width_us": 100
+          },
+          "behavior": {
+            "type": "STAGGERED",
+            "pri_sequence_ms": [
+              40,
+              60,
+              50
+            ]
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E207",
+          "name": "Staggered Radar 02",
+          "category": "RADAR",
+          "subtype": "TRACKING",
+          "rf": {
+            "center_frequency_hz": 6000000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 34
+          },
+          "pulse": {
+            "width_us": 120
+          },
+          "behavior": {
+            "type": "STAGGERED",
+            "pri_sequence_ms": [
+              30,
+              45,
+              70
+            ]
+          },
+          "modulation": {
+            "type": "PHASE_CODED"
+          }
+        },
+
+        {
+          "emitter_id": "E208",
+          "name": "Jittered Radar 01",
+          "category": "RADAR",
+          "subtype": "SEARCH",
+          "rf": {
+            "center_frequency_hz": 3000000000,
+            "bandwidth_hz": 15000000,
+            "power_dbm": 30
+          },
+          "pulse": {
+            "width_us": 100
+          },
+          "behavior": {
+            "type": "JITTERED",
+            "base_pri_ms": 50,
+            "jitter_percent": 10
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E209",
+          "name": "Jittered Radar 02",
+          "category": "RADAR",
+          "subtype": "TRACKING",
+          "rf": {
+            "center_frequency_hz": 8500000000,
+            "bandwidth_hz": 20000000,
+            "power_dbm": 36
+          },
+          "pulse": {
+            "width_us": 80
+          },
+          "behavior": {
+            "type": "JITTERED",
+            "base_pri_ms": 35,
+            "jitter_percent": 8
+          },
+          "modulation": {
+            "type": "LFM"
+          }
+        },
+
+        {
+          "emitter_id": "E210",
+          "name": "Agile Communication 01",
+          "category": "COMMUNICATION",
+          "subtype": "HIGH_RATE",
+          "rf": {
+            "center_frequency_hz": 2100000000,
+            "bandwidth_hz": 30000000,
+            "power_dbm": 24
+          },
+          "pulse": {
+            "width_us": 250,
+            "repetition_interval_ms": 20
+          },
+          "behavior": {
+            "type": "BURST",
+            "burst_count": 5,
+            "burst_interval_ms": 300
+          },
+          "modulation": {
+            "type": "PHASE_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E211",
+          "name": "Agile Communication 02",
+          "category": "COMMUNICATION",
+          "subtype": "HIGH_RATE",
+          "rf": {
+            "center_frequency_hz": 5500000000,
+            "bandwidth_hz": 50000000,
+            "power_dbm": 25
+          },
+          "pulse": {
+            "width_us": 200,
+            "repetition_interval_ms": 25
+          },
+          "behavior": {
+            "type": "BURST",
+            "burst_count": 4,
+            "burst_interval_ms": 400
+          },
+          "modulation": {
+            "type": "FREQUENCY_SHIFT_KEYING"
+          }
+        },
+
+        {
+          "emitter_id": "E212",
+          "name": "Wideband Agile RF",
+          "category": "GENERIC_RF",
+          "subtype": "UNKNOWN",
+          "rf": {
+            "center_frequency_hz": 9000000000,
+            "bandwidth_hz": 100000000,
+            "power_dbm": 20
+          },
+          "pulse": {
+            "width_us": 100
+          },
+          "behavior": {
+            "type": "FREQUENCY_AGILE",
+            "min_frequency_hz": 6000000000,
+            "max_frequency_hz": 12000000000,
+            "change_interval_ms": 20
+          },
+          "modulation": {
+            "type": "UNMODULATED"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "MIXED_REALISTIC",
+      "name": "Mixed Electromagnetic Environment",
+      "description": "Synthetic mixed environment combining radar, communication, navigation, interference and diverse emission behaviours.",
+      "duration_seconds": 120,
+
+      "spectrum": {
+        "min_frequency_hz": 300000000,
+        "max_frequency_hz": 18000000000
+      },
+
+      "emitter_count": 25,
+
+      "population": {
+        "RADAR": 10,
+        "COMMUNICATION": 7,
+        "NAVIGATION": 3,
+        "INTERFERENCE": 3,
+        "GENERIC_RF": 2
+      },
+
+      "behaviour_distribution": {
+        "CONTINUOUS": 4,
+        "PERIODIC": 5,
+        "BURST": 4,
+        "JITTERED": 3,
+        "STAGGERED": 3,
+        "FREQUENCY_HOPPING": 3,
+        "FREQUENCY_AGILE": 3
+      },
+
+      "emitter_generation": {
+        "mode": "PREDEFINED_PLUS_RANDOMIZED",
+        "randomization": {
+          "enabled": true,
+          "frequency_offset_percent": 2,
+          "power_offset_db": 2,
+          "pri_offset_percent": 5,
+          "pulse_width_offset_percent": 5
+        }
+      }
+    }
+  ]
+}

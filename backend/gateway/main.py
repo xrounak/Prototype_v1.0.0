@@ -2,7 +2,14 @@
 import asyncio
 from contextlib import asynccontextmanager
 import logging
+from pathlib import Path
+import sys
 from typing import Dict, Any
+
+# Ensure workspace root is in sys.path so 'backend' package is always resolvable
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(WORKSPACE_ROOT) not in sys.path:
+    sys.path.insert(0, str(WORKSPACE_ROOT))
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +40,7 @@ async def simulation_loop():
     """Background task advancing clock and generating emitter events when unpaused."""
     logger.info("Simulation background loop started.")
     tick_sec = settings.SIMULATION_TICK_MS / 1000.0
+    status_ticks = 0
 
     while True:
         try:
@@ -47,6 +55,22 @@ async def simulation_loop():
                 # Step emitters & publish events
                 if emitter_service.is_running:
                     await emitter_service.step_and_publish(t_start, t_end)
+
+                # Step receiver & publish synchronized scan/observation events
+                if receiver_service.is_running and receiver_service.auto_scan:
+                    await receiver_service.step_and_scan(t_start, t_end)
+
+                # Periodically broadcast updated SYSTEM_STATUS every 2 ticks (~100ms)
+                status_ticks += 1
+                if status_ticks % 2 == 0:
+                    status = await get_system_status()
+                    await global_event_bus.publish(
+                        EventMessage(
+                            type="SYSTEM_STATUS",
+                            timestamp=t_end,
+                            payload=status.model_dump(),
+                        )
+                    )
 
             await asyncio.sleep(tick_sec)
         except asyncio.CancelledError:
