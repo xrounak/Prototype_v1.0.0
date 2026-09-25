@@ -29,6 +29,7 @@ class ScanWindow(BaseModel):
     dwell_time_ms: float
     time_start: float
     time_end: float
+    scheduler_strategy: Optional[str] = None
 
 
 class Detection(BaseModel):
@@ -79,6 +80,7 @@ class SystemStatus(BaseModel):
     active_emitters: int = 0
     receiver_bandwidth_hz: float = 500_000_000.0
     last_observation_id: Optional[str] = None
+    scanner_strategy: str = "round_robin"
 
 
 class EventMessage(BaseModel):

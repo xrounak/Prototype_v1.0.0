@@ -6,7 +6,7 @@ Supports both manual tuning dwells and synchronized automated spectrum sweeps.
 """
 import logging
 import uuid
-from typing import List, Optional
+from typing import Any, List, Optional
 from backend.shared.models import (
     EventMessage,
     Observation,
@@ -19,6 +19,11 @@ from backend.receiver.models import ReceiverConfig, ReceiverState
 from backend.receiver.scanner import ReceiverScanner
 from backend.receiver.detector import ReceiverDetector
 from backend.emitter.service import EmitterService
+from backend.scheduler import (
+    SchedulerManager,
+    SchedulerContext,
+    RoundRobinStrategy,
+)
 
 logger = logging.getLogger("ew.receiver")
 
@@ -32,6 +37,8 @@ class ReceiverService:
         clock: Optional[SimulationClock] = None,
         emitter_service: Optional[EmitterService] = None,
         event_bus: Optional[EventBus] = None,
+        scheduler: Optional[SchedulerManager] = None,
+        environment_manager: Optional[Any] = None,
     ):
         self.config = config or ReceiverConfig()
         self.state = ReceiverState(receiver_id=self.config.receiver_id)
@@ -42,7 +49,29 @@ class ReceiverService:
         self.event_bus = event_bus or global_event_bus
         self.is_running: bool = True
         self.auto_scan: bool = True  # Automatically sweep spectrum during simulation
-        self.current_sweep_idx: int = 0
+        self.scheduler: SchedulerManager = scheduler or SchedulerManager()
+        self.environment_manager = environment_manager
+
+    @property
+    def current_sweep_idx(self) -> int:
+        """Deprecated: sweep sequence index is now maintained by the active Scheduler strategy."""
+        strategy = self.scheduler.current_strategy
+        if isinstance(strategy, RoundRobinStrategy):
+            return strategy.index
+        return 0
+
+    @current_sweep_idx.setter
+    def current_sweep_idx(self, value: int) -> None:
+        strategy = self.scheduler.current_strategy
+        if isinstance(strategy, RoundRobinStrategy):
+            strategy.index = value
+
+    def reset(self) -> None:
+        """Reset receiver state and scanner scheduler."""
+        self.scheduler.reset()
+        self.state.status = "IDLE"
+        self.state.current_scan_window = None
+        self.state.last_observation = None
 
     def start(self) -> None:
         """Start the receiver service."""
@@ -56,42 +85,61 @@ class ReceiverService:
         self.state.status = "STOPPED"
         logger.info("Receiver service stopped.")
 
-    def get_sweep_bands(self) -> List[float]:
-        """Derive sweep frequency tuning bands covering the active environment."""
+    def get_sweep_bands(
+        self,
+        min_freq_hz: Optional[float] = None,
+        max_freq_hz: Optional[float] = None,
+        step_hz: Optional[float] = None,
+    ) -> List[float]:
+        """Derive uniform, contiguous sweep frequency bands across the active spectrum.
+        
+        All parameters can be configured or overridden via function arguments.
+        If omitted, boundaries dynamically inherit from the active environment scenario
+        or the receiver hardware configuration. No magic frequency numbers are hardcoded.
+        
+        Args:
+            min_freq_hz: Optional minimum frequency override in Hz.
+            max_freq_hz: Optional maximum frequency override in Hz.
+            step_hz: Optional step size in Hz (defaults to instantaneous bandwidth).
+            
+        Returns:
+            List of starting frequencies in Hz forming a uniform, contiguous spectrum grid.
+        """
+        start_f = min_freq_hz
+        end_f = max_freq_hz
+
+        # Dynamically query active environment's defined spectrum limits if not passed
+        if (start_f is None or end_f is None) and self.environment_manager:
+            try:
+                env = self.environment_manager.get_current_environment()
+                if env and hasattr(env, "spectrum") and env.spectrum:
+                    if start_f is None:
+                        start_f = env.spectrum.min_frequency_hz
+                    if end_f is None:
+                        end_f = env.spectrum.max_frequency_hz
+            except Exception:
+                pass
+
+        # Fallback to receiver hardware configuration if still unspecified
+        if start_f is None:
+            start_f = self.config.min_frequency_hz
+        if end_f is None:
+            end_f = self.config.max_frequency_hz
+
+        # Clamp within receiver hardware capabilities
+        start_f = max(self.config.min_frequency_hz, start_f)
+        end_f = min(self.config.max_frequency_hz, end_f)
+
+        step = step_hz if (step_hz and step_hz > 0) else self.config.instantaneous_bandwidth_hz
+
+        # Generate a clean, uniform contiguous frequency grid
         bands: List[float] = []
+        curr = start_f
+        while curr + step <= end_f + 1.0:
+            bands.append(round(curr, 2))
+            curr += step
 
-        # If emitter service is available, include bands targeting active emitters
-        if self.emitter_service and self.emitter_service.manager:
-            active_emitters = [em for em in self.emitter_service.manager.get_all_emitters() if em.active]
-            for em in active_emitters:
-                center_f = em.rf.center_frequency_hz
-                # Center the 500 MHz instantaneous window around emitter if possible
-                start_f = max(self.config.min_frequency_hz, center_f - 250_000_000.0)
-                end_f = start_f + self.config.instantaneous_bandwidth_hz
-                if end_f > self.config.max_frequency_hz:
-                    start_f = self.config.max_frequency_hz - self.config.instantaneous_bandwidth_hz
-                start_f = round(start_f, -6)
-                if start_f not in bands and start_f >= self.config.min_frequency_hz:
-                    bands.append(start_f)
-
-        # Baseline sweep bands if none derived or small set
-        default_bands = [
-            700_000_000.0,
-            1_100_000_000.0,
-            1_500_000_000.0,
-            2_000_000_000.0,
-            2_800_000_000.0,
-            3_200_000_000.0,
-            5_400_000_000.0,
-            8_800_000_000.0,
-            9_300_000_000.0,
-        ]
-        for db in default_bands:
-            if db not in bands and (db + self.config.instantaneous_bandwidth_hz) <= self.config.max_frequency_hz:
-                bands.append(db)
-
-        bands.sort()
-        return bands or [700_000_000.0]
+        return bands or [start_f]
 
     async def step_and_scan(self, time_start_sec: float, time_end_sec: float) -> Optional[Observation]:
         """Execute a synchronized receiver scan dwell during continuous simulation.
@@ -102,8 +150,14 @@ class ReceiverService:
             return None
 
         bands = self.get_sweep_bands()
-        freq_start = bands[self.current_sweep_idx % len(bands)]
-        self.current_sweep_idx += 1
+        context = SchedulerContext(
+            simulation_time=time_start_sec,
+            previous_scan=self.state.current_scan_window,
+            previous_observation=self.state.last_observation,
+            available_bands=bands,
+            metadata={"dwell_ms": (time_end_sec - time_start_sec) * 1000.0},
+        )
+        freq_start = self.scheduler.next_scan(bands=bands, context=context)
 
         freq_end = freq_start + self.config.instantaneous_bandwidth_hz
         dwell_ms = (time_end_sec - time_start_sec) * 1000.0
@@ -115,6 +169,7 @@ class ReceiverService:
             dwell_time_ms=round(dwell_ms, 2),
             time_start=round(time_start_sec, 6),
             time_end=round(time_end_sec, 6),
+            scheduler_strategy=self.scheduler.get_strategy(),
         )
 
         self.state.status = "SCANNING"
@@ -133,6 +188,7 @@ class ReceiverService:
                     "dwell_time_ms": scan_window.dwell_time_ms,
                     "time_start": scan_window.time_start,
                     "time_end": scan_window.time_end,
+                    "scheduler_strategy": self.scheduler.get_strategy(),
                 },
             )
         )
@@ -189,6 +245,7 @@ class ReceiverService:
 
         sim_time = self.clock.now() if self.clock else 0.0
         scan_window = self.scanner.build_scan_window(request, sim_time)
+        scan_window.scheduler_strategy = self.scheduler.get_strategy()
 
         self.state.status = "SCANNING"
         self.state.current_scan_window = scan_window
@@ -213,6 +270,7 @@ class ReceiverService:
                     "dwell_time_ms": scan_window.dwell_time_ms,
                     "time_start": scan_window.time_start,
                     "time_end": scan_window.time_end,
+                    "scheduler_strategy": self.scheduler.get_strategy(),
                 }
             )
         )

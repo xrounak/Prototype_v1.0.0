@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # Default receiver parameters
     RECEIVER_BANDWIDTH_HZ: float = 500_000_000.0  # 500 MHz
     DEFAULT_DWELL_TIME_MS: float = 25.0           # 25 ms
+    DEFAULT_SCAN_STRATEGY: str = "round_robin"
 
     # Simulation engine parameters
     SIMULATION_TICK_MS: float = 50.0             # 50 ms tick interval

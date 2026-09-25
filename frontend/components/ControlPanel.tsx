@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Play, Pause, RotateCcw, FastForward, Scan, Radio, RefreshCw, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, Pause, RotateCcw, FastForward, Scan, Radio, RefreshCw, Compass } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface ControlPanelProps {
   simulationState: string;
+  scannerStrategy?: string;
   onRefreshStatus?: () => void;
   onReset?: () => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   simulationState,
+  scannerStrategy = 'round_robin',
   onRefreshStatus,
   onReset,
 }) => {
@@ -20,8 +22,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isStepping, setIsStepping] = useState<boolean>(false);
   const [autoSweep, setAutoSweep] = useState<boolean>(true);
+  const [activeStrategy, setActiveStrategy] = useState<string>(scannerStrategy);
+  const [isChangingStrategy, setIsChangingStrategy] = useState<boolean>(false);
 
   const isRunning = simulationState === 'RUNNING';
+
+  useEffect(() => {
+    if (scannerStrategy) {
+      setActiveStrategy(scannerStrategy);
+    }
+  }, [scannerStrategy]);
 
   const handleTogglePlayPause = async () => {
     try {
@@ -44,6 +54,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       onRefreshStatus?.();
     } catch (err) {
       console.error('Failed to toggle auto sweep:', err);
+    }
+  };
+
+  const handleStrategyChange = async (newStrategy: string) => {
+    try {
+      setIsChangingStrategy(true);
+      const res = await api.setReceiverScheduler(newStrategy);
+      if (res?.strategy) {
+        setActiveStrategy(res.strategy);
+      }
+      onRefreshStatus?.();
+    } catch (err) {
+      console.error('Failed to set scanner strategy:', err);
+    } finally {
+      setIsChangingStrategy(false);
     }
   };
 
@@ -88,12 +113,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   return (
     <div className="glass-panel" style={{ padding: '20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <h2 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Radio size={16} color="#00f0ff" />
           SIMULATION &amp; RECEIVER SYNCHRONIZATION CONTROLS
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(2, 6, 23, 0.4)',
+              border: `1px solid ${activeStrategy === 'random' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+              borderRadius: '6px',
+              padding: '4px 10px',
+              color: activeStrategy === 'random' ? '#c084fc' : '#38bdf8',
+              fontWeight: 600,
+            }}
+            title="Active Receiver Scanner Strategy"
+          >
+            <Compass size={12} />
+            SCANNER: {activeStrategy === 'random' ? 'RANDOM' : 'ROUND-ROBIN'}
+          </div>
+
           <button
             onClick={handleToggleAutoSweep}
             style={{
@@ -114,12 +157,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             Auto Receiver Sweep: {autoSweep ? 'SYNCED' : 'PAUSED'}
           </button>
           <span style={{ color: 'var(--text-muted)' }}>
-            Receiver BW: 500 MHz Instantaneous
+            BW: 500 MHz
           </span>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px' }}>
         {/* Sim Engine Controls */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
@@ -157,43 +200,51 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
         </div>
 
-        {/* Quick Receiver Scan Triggers */}
+        {/* Scanner Strategy Selector */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-            Instantaneous Dwell Presets (500 MHz)
+            Scanner Strategy
           </span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            <button
-              onClick={() => handleExecuteScan(700, 25)}
-              disabled={isScanning}
-              className="btn btn-secondary"
-              style={{ borderColor: 'rgba(56, 189, 248, 0.4)' }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <select
+              value={activeStrategy}
+              onChange={(e) => handleStrategyChange(e.target.value)}
+              disabled={isChangingStrategy}
+              aria-label="Scanner Strategy Selector"
+              style={{
+                background: 'rgba(30, 41, 59, 0.8)',
+                border: '1px solid rgba(0, 240, 255, 0.4)',
+                color: '#f1f5f9',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                borderRadius: '6px',
+                padding: '6px 12px',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
             >
-              <Scan size={15} color="#38bdf8" />
-              700 &rarr; 1200 MHz
-            </button>
-
-            <button
-              onClick={() => handleExecuteScan(1100, 25)}
-              disabled={isScanning}
-              className="btn btn-secondary"
-              style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}
+              <option value="round_robin">Round-Robin</option>
+              <option value="random">Random</option>
+            </select>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                padding: '4px 8px',
+                borderRadius: '4px',
+                background: activeStrategy === 'random' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                color: activeStrategy === 'random' ? '#c084fc' : '#38bdf8',
+                border: `1px solid ${activeStrategy === 'random' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(56, 189, 248, 0.3)'}`,
+                textTransform: 'uppercase',
+              }}
             >
-              <Scan size={15} color="#f59e0b" />
-              1100 &rarr; 1600 MHz
-            </button>
-
-            <button
-              onClick={() => handleExecuteScan(2800, 25)}
-              disabled={isScanning}
-              className="btn btn-secondary"
-              style={{ borderColor: 'rgba(168, 85, 247, 0.4)' }}
-            >
-              <Scan size={15} color="#c084fc" />
-              2800 &rarr; 3300 MHz
-            </button>
+              {activeStrategy === 'random' ? 'Random Mode' : 'Sequential'}
+            </span>
           </div>
         </div>
+
 
         {/* Custom Tune / Dwell Scan */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

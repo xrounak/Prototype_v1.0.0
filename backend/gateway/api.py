@@ -18,6 +18,7 @@ from backend.environments.manager import EnvironmentManager, global_environment_
 from backend.environments.models import EnvironmentConfig, EnvironmentSummary
 from backend.emitter.service import EmitterManager, EmitterService
 from backend.receiver.service import ReceiverService
+from backend.scheduler.models import SetSchedulerStrategyRequest, SchedulerStatus
 
 router = APIRouter()
 
@@ -30,6 +31,7 @@ receiver_service = ReceiverService(
     clock=clock,
     emitter_service=emitter_service,
     event_bus=global_event_bus,
+    environment_manager=environment_manager,
 )
 
 simulation_state = {
@@ -90,6 +92,7 @@ async def get_system_status() -> SystemStatus:
         active_emitters=active_emitters,
         receiver_bandwidth_hz=receiver_service.config.instantaneous_bandwidth_hz,
         last_observation_id=last_obs_id,
+        scanner_strategy=receiver_service.scheduler.get_strategy(),
     )
 
 
@@ -130,8 +133,9 @@ async def select_environment(req: SelectEnvironmentRequest):
         # 3. Replace emitter population
         emitter_service.manager.load_emitters(new_env.emitters)
 
-        # 4. Reset simulation time to 0
+        # 4. Reset simulation time to 0 and reset receiver/scheduler state
         clock.reset(0.0)
+        receiver_service.reset()
 
         # 5. Publish ENVIRONMENT_CHANGED
         await global_event_bus.publish(
@@ -264,6 +268,30 @@ async def execute_receiver_scan(request: ScanRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/api/receiver/scheduler", response_model=SchedulerStatus)
+async def get_receiver_scheduler():
+    """Get active receiver scanner strategy and all available options."""
+    return {
+        "strategy": receiver_service.scheduler.get_strategy(),
+        "available_strategies": receiver_service.scheduler.get_available_strategies(),
+    }
+
+
+@router.post("/api/receiver/scheduler")
+async def set_receiver_scheduler(req: SetSchedulerStrategyRequest):
+    """Set active receiver scanner strategy (e.g. 'round_robin', 'random')."""
+    try:
+        strategy = receiver_service.scheduler.set_strategy(req.strategy)
+        await broadcast_system_status()
+        return {
+            "status": "ok",
+            "strategy": strategy,
+            "available_strategies": receiver_service.scheduler.get_available_strategies(),
+        }
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+
 # -------------------------------------------------------------
 # Simulation Engine Endpoints
 # -------------------------------------------------------------
@@ -290,9 +318,7 @@ async def reset_simulation():
     """Reset the simulation clock to 0.0s and clear active state."""
     clock.reset(0.0)
     simulation_state["is_running"] = False
-    receiver_service.current_sweep_idx = 0
-    receiver_service.current_scan_window = None
-    receiver_service.last_observation = None
+    receiver_service.reset()
 
     # Broadcast reset so connected frontend clients clear event buffers
     await global_event_bus.publish(

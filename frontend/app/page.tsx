@@ -195,6 +195,7 @@ export default function Home() {
         {/* Top Control Bar */}
         <ControlPanel
           simulationState={systemStatus?.simulation_state || 'PAUSED'}
+          scannerStrategy={systemStatus?.scanner_strategy || 'round_robin'}
           onRefreshStatus={refreshData}
           onReset={clearAllHistory}
         />
@@ -215,6 +216,7 @@ export default function Home() {
             lastObservation={lastObservation}
             currentScan={currentScan}
             receiverStatus={systemStatus?.receiver_service || 'STOPPED'}
+            scannerStrategy={systemStatus?.scanner_strategy || 'round_robin'}
           />
           <SystemStatusCard
             status={systemStatus}
